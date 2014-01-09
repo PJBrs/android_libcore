@@ -264,14 +264,15 @@ public class ZipFile implements ZipConstants {
         RandomAccessFile raf = mRaf;
         synchronized (raf) {
             // We don't know the entry data's start position. All we have is the
-            // position of the entry's local header. At position 28 we find the
-            // length of the extra data. In some cases this length differs from
-            // the one coming in the central header.
+            // position of the entry's local header.
+            // Offset 26 has the file name length, and offset 28 has the extra field length.
+            // These lengths can differ from the ones in the central header.
             RAFStream rafstrm = new RAFStream(raf,
-                    entry.mLocalHeaderRelOffset + 28);
-            int localExtraLenOrWhatever = ler.readShortLE(rafstrm);
-            // Skip the name and this "extra" data or whatever it is:
-            rafstrm.skip(entry.nameLen + localExtraLenOrWhatever);
+                    entry.mLocalHeaderRelOffset + 26);
+            int fileNameLength = ler.readShortLE(rafstrm);
+            int extraFieldLength = ler.readShortLE(rafstrm);
+            // Skip the variable-size file name and extra field data.
+            rafstrm.skip(fileNameLength + extraFieldLength);
             rafstrm.mLength = rafstrm.mOffset + entry.compressedSize;
             if (entry.compressionMethod == ZipEntry.DEFLATED) {
                 int bufSize = Math.max(1024, (int)Math.min(entry.getSize(), 65535L));
